@@ -6,7 +6,7 @@
 
 **Install the official ReShade runtime for Wine and Proton games on Linux.**
 
-Automatic Steam game detection, per-game shader selection, AppImage packaging, and a CLI path for scripted installs.
+Automatic Steam and Heroic game detection, per-game shader selection, AppImage packaging, and a CLI path for scripted installs.
 
 | Version | License | Delivery |
 | --- | --- | --- |
@@ -46,13 +46,19 @@ Install `yad` when you want the graphical flow. If `yad` is unavailable, the scr
 
 | Capability | What it does |
 | --- | --- |
-| Steam detection | Scans every Steam library and reads `appinfo.vdf` metadata to find the real launch executable. |
+| Game detection | Scans every Steam library and Heroic's installed Epic/GOG metadata to find Windows game executables. |
 | DLL selection | Uses PE import analysis to choose the most likely ReShade hook such as `dxgi`, `d3d9`, `opengl32`, `ddraw`, or `dinput8`. |
 | Per-game state | Saves DLL, architecture, path, App ID, and selected shader repos per game in `~/.local/share/reshade/game-state/`. |
 | Shader curation | Lets each game keep its own selected shader packs while still linking shared `.fxh` headers needed for compile-time includes. |
-| Prefix support | Detects the right Wine or Proton prefix and installs `d3dcompiler_47.dll` where ReShade 6.5+ expects it. |
+| Prefix support | Detects Steam Proton and Heroic-configured Wine prefixes, then installs `d3dcompiler_47.dll` where ReShade 6.5+ expects it. |
 | Repeat updates | Reuses tracked state for reinstall runs and supports `--update-all` for every known game. |
 | Multiple interfaces | Supports `yad`, `whiptail`, `dialog`, and direct CLI execution over the same install flow. |
+
+## Heroic Games Launcher support
+
+When Heroic is installed, its installed Windows games from Epic and GOG are included in the same picker as Steam games. The installer reads Heroic's installed-game metadata and the selected game's configured Wine prefix, so the game files and `d3dcompiler_47.dll` are linked into the appropriate locations.
+
+Both native Heroic configuration (`~/.config/heroic`, or `$XDG_CONFIG_HOME/heroic`) and Heroic Flatpak configuration (`~/.var/app/com.heroicgameslauncher.hgl/config/heroic`) are searched. Heroic games added through custom/sideload entries that are not present in the installed Epic/GOG metadata can still be selected with **Enter path manually...**.
 
 ## Choose how first-run installs behave
 

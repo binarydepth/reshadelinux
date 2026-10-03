@@ -4,6 +4,12 @@ All notable changes to this project will be documented in this file.
 
 The format is based on Keep a Changelog, adapted for this repository.
 
+## [Unreleased]
+
+### Added
+
+- Detect installed Heroic Epic and GOG Windows games from native and Flatpak Heroic profiles, and use each game's configured Wine prefix for `d3dcompiler_47.dll`.
+
 ## [1.3.5] - 2026-09-21
 
 ### Added in 1.3.5

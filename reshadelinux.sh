@@ -54,6 +54,7 @@ SCRIPT_DIR="$(dirname "$(realpath -- "$0")")"
 . "$SCRIPT_DIR/lib/shaders.sh" || { printf 'Failed to source %s\n' "$SCRIPT_DIR/lib/shaders.sh" >&2; exit 1; }
 . "$SCRIPT_DIR/lib/steam_detection.sh" || { printf 'Failed to source %s\n' "$SCRIPT_DIR/lib/steam_detection.sh" >&2; exit 1; }
 . "$SCRIPT_DIR/lib/steam_metadata.sh" || { printf 'Failed to source %s\n' "$SCRIPT_DIR/lib/steam_metadata.sh" >&2; exit 1; }
+. "$SCRIPT_DIR/lib/heroic_detection.sh" || { printf 'Failed to source %s\n' "$SCRIPT_DIR/lib/heroic_detection.sh" >&2; exit 1; }
 . "$SCRIPT_DIR/lib/game_selection.sh" || { printf 'Failed to source %s\n' "$SCRIPT_DIR/lib/game_selection.sh" >&2; exit 1; }
 . "$SCRIPT_DIR/lib/install.sh" || { printf 'Failed to source %s\n' "$SCRIPT_DIR/lib/install.sh" >&2; exit 1; }
 . "$SCRIPT_DIR/lib/deps.sh" || { printf 'Failed to source %s\n' "$SCRIPT_DIR/lib/deps.sh" >&2; exit 1; }

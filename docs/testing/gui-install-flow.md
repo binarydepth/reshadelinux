@@ -3,7 +3,8 @@
 Every dialog of an install with the yad backend, in the order a user meets them. Start with
 `UI_BACKEND=yad ./reshadelinux.sh` (or `reshadelinux-gui.sh`). Use a Steam library with at least
 three games, and give one game a name containing `&` and `<` (for example `Tom & Jerry <Demo>`;
-a Steam `appmanifest` file is enough).
+a Steam `appmanifest` file is enough). When Heroic is installed, include an installed Windows game
+from its Epic or GOG library.
 
 **Auto** means `scripts/diagnostics/smoke_yad.sh` already covers the item.
 
@@ -20,7 +21,7 @@ a Steam `appmanifest` file is enough).
 
 ## 2. Game picker (title "ReShade - Select Game")
 
-- [ ] **INST-10 P0** Detected Steam games are listed in three columns (Game, App ID, Executable), and the
+- [ ] **INST-10 P0** Detected Steam and Heroic games are listed in three columns (Game, App ID, Executable), and the
   last row is "Enter path manually...". The first row is highlighted.
 - [ ] **INST-11 P0** A game named `Tom & Jerry <Demo>` shows exactly that, without `&amp;` or missing
   characters. Choosing it installs for that game. **Auto:** `game_with_markup_characters_in_its_name`
@@ -28,6 +29,9 @@ a Steam `appmanifest` file is enough).
 - [ ] **INST-13 P0** Escape or Cancel exits with status 0 and links nothing. **Auto:** `cancel_at_the_game_picker`
 - [ ] **INST-14 P1** With no detected games the folder chooser opens straight away.
 - [ ] **INST-15 P1** With 30 or more games the list scrolls and stays responsive; typing starts a search.
+- [ ] **INST-16 P1** Installed Heroic Epic and GOG Windows games appear in the picker with a `heroic-`
+  identifier. Selecting either game installs into its Windows executable folder and uses its configured
+  Heroic Wine prefix for `d3dcompiler_47.dll`.
 
 ## 3. Manual game folder (title "ReShade - Select the game folder")
 

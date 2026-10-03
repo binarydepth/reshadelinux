@@ -286,6 +286,86 @@ EOF
     [[ ${DETECTED_GAME_EXES[0]} == "reach.exe" ]]
 }
 
+test_detect_heroic_games_reads_installed_metadata() {
+    local _heroic_config="$HOME/.config/heroic"
+    local _game_root="$TEST_TEMP_DIR/heroic-games/HeroicDetect"
+    local _gog_root="$TEST_TEMP_DIR/heroic-games/HeroicGogDetect"
+    local _flatpak_config="$HOME/.var/app/com.heroicgameslauncher.hgl/config/heroic"
+    local _flatpak_root="$TEST_TEMP_DIR/heroic-games/HeroicFlatpakDetect"
+    local _prefix="$TEST_TEMP_DIR/heroic-prefix"
+
+    mkdir -p "$_heroic_config/legendaryConfig/legendary" \
+        "$_heroic_config/gog_store" "$_heroic_config/GamesConfig" \
+        "$_flatpak_config/legendaryConfig/legendary" "$_flatpak_root" \
+        "$_game_root/bin/x64" "$_gog_root" \
+        "$_prefix/drive_c/windows/system32"
+    touch "$_game_root/bin/x64/HeroicDetect.exe"
+    touch "$_gog_root/HeroicGogDetect.exe"
+    touch "$_flatpak_root/HeroicFlatpakDetect.exe"
+    cat > "$_heroic_config/legendaryConfig/legendary/installed.json" <<EOF
+{
+    "HeroicDetectId": {
+        "app_name": "HeroicDetectId",
+        "title": "Heroic Detect",
+        "install_path": "$_game_root",
+        "executable": "bin/x64/HeroicDetect.exe"
+    }
+}
+EOF
+    cat > "$_heroic_config/gog_store/installed.json" <<EOF
+{
+    "installed": [
+        {
+            "app_name": "HeroicGogDetectId",
+            "title": "Heroic GOG Detect",
+            "install_path": "$_gog_root",
+            "executable": "HeroicGogDetect.exe",
+            "platform": "windows"
+        }
+    ]
+}
+EOF
+    cat > "$_heroic_config/GamesConfig/HeroicDetectId.json" <<EOF
+{
+    "HeroicDetectId": {
+        "winePrefix": "$_prefix"
+    }
+}
+EOF
+    cat > "$_flatpak_config/legendaryConfig/legendary/installed.json" <<EOF
+{
+    "HeroicFlatpakDetectId": {
+        "app_name": "HeroicFlatpakDetectId",
+        "title": "Heroic Flatpak Detect",
+        "install_path": "$_flatpak_root",
+        "executable": "HeroicFlatpakDetect.exe"
+    }
+}
+EOF
+
+    detectSteamGames
+
+    [[ ${#DETECTED_GAME_APPIDS[@]} -eq 3 ]]
+    [[ ${DETECTED_GAME_APPIDS[0]} == "heroic-legendary-HeroicDetectId" ]]
+    [[ ${DETECTED_GAME_NAMES[0]} == "Heroic Detect" ]]
+    [[ ${DETECTED_GAME_PATHS[0]} == "$_game_root/bin/x64" ]]
+    [[ ${DETECTED_GAME_EXES[0]} == "HeroicDetect.exe" ]]
+    [[ ${DETECTED_GAME_APPIDS[1]} == "heroic-gog-HeroicGogDetectId" ]]
+    [[ ${DETECTED_GAME_NAMES[1]} == "Heroic GOG Detect" ]]
+    [[ ${DETECTED_GAME_PATHS[1]} == "$_gog_root" ]]
+    [[ ${DETECTED_GAME_EXES[1]} == "HeroicGogDetect.exe" ]]
+    [[ ${DETECTED_GAME_APPIDS[2]} == "heroic-legendary-HeroicFlatpakDetectId" ]]
+    [[ ${DETECTED_GAME_NAMES[2]} == "Heroic Flatpak Detect" ]]
+    [[ ${DETECTED_GAME_PATHS[2]} == "$_flatpak_root" ]]
+    [[ ${DETECTED_GAME_EXES[2]} == "HeroicFlatpakDetect.exe" ]]
+
+    gamePath="${DETECTED_GAME_PATHS[0]}"
+    _selectedAppId="${DETECTED_GAME_APPIDS[0]}"
+    WINEPREFIX=""
+    autoDetectWineprefixFromGamePath
+    [[ $WINEPREFIX == "$_prefix" ]]
+}
+
 run_detection_tests() {
     echo -e "${BLUE}Icon Detection Tests${NC}"
     run_test "Logo.png prioritization" test_icon_logo
@@ -325,5 +405,6 @@ run_detection_tests() {
     run_test "Install dir scan fallback finds nested exe" test_install_dir_scan_fallback_finds_best_nested_exe
     run_test "Manifest autodetect resolves install path" test_detect_steam_games_reads_manifest_install_path
     run_test "Autodetect keeps game with utility-like exe name" test_detect_steam_games_keeps_game_whose_only_exe_has_utility_substring
+    run_test "Heroic installed games and Wine prefixes are detected" test_detect_heroic_games_reads_installed_metadata
     echo ""
 }
