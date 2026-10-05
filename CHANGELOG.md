@@ -4,6 +4,13 @@ All notable changes to this project will be documented in this file.
 
 The format is based on Keep a Changelog, adapted for this repository.
 
+## [Unreleased]
+
+### Added
+
+- When both Native and Flatpak Steam are detected, choose a ReShadeLinux data folder with the new **Manual (AppImage)** startup option, create a missing folder, or use the game `.EXE` folder if creation is declined.
+- Detect installed Heroic Epic and GOG Windows games plus installed sideloaded games from native and Flatpak profiles, and use each game's configured Wine prefix for `d3dcompiler_47.dll`.
+
 ## [1.3.5] - 2026-09-21
 
 ### Added in 1.3.5

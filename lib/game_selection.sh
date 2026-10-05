@@ -83,7 +83,7 @@ function selectDetectedGameByIndex() {
     printf '%bSelected auto-detected game path:%b %s\n' "$_GRN" "$_R" "$gamePath"
 }
 
-# Try to get game directory from user, preferring auto-detected Steam games.
+# Try to get game directory from user, preferring auto-detected launcher games.
 function getGamePath() {
     if [[ ${CLI_GAME_PATH_SET:-0} -eq 1 ]]; then
         selectExplicitGamePath "$CLI_GAME_PATH"
@@ -125,7 +125,7 @@ function getGamePath() {
             read -r _pxHeight _pxWidth < <(ui_yad_dims 26 130)
             _pick=$(ui_capture yad --list \
                 --title="ReShade - Select Game" \
-                --text="Detected installed Steam games. Double-click to select, or choose Manual path." \
+                --text="Detected installed Steam and Heroic games. Double-click to select, or choose Manual path." \
                 --column="Key" --column="Game" --column="App ID" --column="Executable" \
                 --hide-column=1 --print-column=1 --separator="" \
                 --height="$_pxHeight" --width="$_pxWidth" "${_items[@]}") || exit 0
@@ -136,7 +136,7 @@ function getGamePath() {
             done
             _items+=("m" "Manual path...")
             _pick=$(ui_menu "ReShade - Select Game" \
-                "Detected installed Steam games. Choose one, or select manual path." \
+                "Detected installed Steam and Heroic games. Choose one, or select manual path." \
                 24 110 16 "${_items[@]}") || exit 0
         fi
         if [[ $_pick == "m" ]]; then
@@ -150,7 +150,7 @@ function getGamePath() {
     fi
 
     local _i _choice _maxShow=25 _statusLabel
-    printf '%bDetected Steam games on this system:%b\n' "$_CYN$_B" "$_R"
+    printf '%bDetected Steam and Heroic games on this system:%b\n' "$_CYN$_B" "$_R"
     for ((_i=0; _i<${#DETECTED_GAME_PATHS[@]} && _i<_maxShow; _i++)); do
         _statusLabel=$(formatDetectedGameLabel "${DETECTED_GAME_NAMES[_i]}" "${DETECTED_GAME_APPIDS[_i]}" "${DETECTED_GAME_PATHS[_i]}")
         printf '  %2d) %s (AppID %s)\n      exe: %s\n      -> %s\n' \

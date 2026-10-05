@@ -1,6 +1,53 @@
 # shellcheck shell=bash
 # SPDX-License-Identifier: GPL-2.0-or-later
 
+function _resolveManualReshadeDataDirectory() {
+    local _path="$1" _create=0 _answer _exe
+
+    _path="${_path/#\~/$HOME}"
+    if [[ -d $_path ]]; then
+        printf '%s\n' "${_path%/}"
+        return 0
+    fi
+
+    if [[ $_UI_BACKEND == cli ]]; then
+        printf 'The selected ReShade data directory does not exist: %s\n' "$_path" >&2
+        _answer=$(checkStdin "Create it? (y/n): " "^(y|Y|n|N)$") || return 1
+        [[ $_answer == y || $_answer == Y ]] && _create=1
+    else
+        if ui_yesno "ReShade - Create data directory" \
+            "The selected ReShade data directory does not exist:\n$_path\n\nCreate it?" 12 76; then
+            _create=1
+        fi
+    fi
+
+    if [[ $_create -eq 1 ]]; then
+        mkdir -p "$_path" || printErr "Unable to create ReShade data directory '$_path'."
+        printf '%s\n' "${_path%/}"
+        return 0
+    fi
+
+    if [[ $_UI_BACKEND == cli ]]; then
+        printf 'Choose the existing directory that contains the game .EXE. ReShade data will be stored there.\n' >&2
+        _path=$(checkStdin "Game .EXE directory: " "^.+$") || return 1
+    else
+        ui_msgbox "ReShade - Game directory required" \
+            "Choose the existing directory containing the game's .EXE. ReShade data will be stored in that directory." \
+            12 76
+        _path=$(ui_directorybox "ReShade - Game .EXE directory" "$HOME" 24 95 \
+            "Choose the existing directory containing the game's .EXE.") || return 1
+    fi
+
+    _path="${_path/#\~/$HOME}"
+    [[ -d $_path ]] || printErr "The selected game .EXE directory does not exist: $_path"
+    _exe=""
+    for _exe in "$_path"/*.exe "$_path"/*.EXE; do
+        [[ -f $_exe ]] && break
+    done
+    [[ -f $_exe ]] || printErr "No game .EXE was found directly inside '$_path'. Choose the game's executable directory."
+    printf '%s\n' "${_path%/}"
+}
+
 function init_runtime_config() {
     local _backend_value _backend_rc
 
@@ -38,26 +85,41 @@ function init_runtime_config() {
             printf '%bDetected Flatpak Steam — using Flatpak data dir for MAIN_PATH.%b\n' "$_CYN" "$_R"
         elif [[ $_flatpak_ok -eq 1 && $_native_ok -eq 1 ]]; then
             if [[ $_UI_BACKEND != cli ]]; then
-                local _fpChoice
+                local _fpChoice _manualPath
                 _fpChoice=$(ui_radiolist "ReShade" \
-                    "Both Flatpak and native Steam installs were detected. Which installation should ReShade target?" \
-                    14 78 2 \
+                    "Choose where ReShadeLinux should store its shared data." \
+                    16 78 3 \
                     flatpak "Flatpak Steam -> $_flatpak_data/reshade" ON \
-                    native "Native Steam -> $XDG_DATA_HOME/reshade" OFF) || exit 0
-                [[ $_fpChoice == flatpak ]] \
-                    && MAIN_PATH="$_flatpak_data/reshade" \
-                    || MAIN_PATH="$XDG_DATA_HOME/reshade"
+                    native "Native Steam -> $XDG_DATA_HOME/reshade" OFF \
+                    manual "Manual (AppImage)" OFF) || exit 0
+                case "$_fpChoice" in
+                    flatpak) MAIN_PATH="$_flatpak_data/reshade" ;;
+                    native) MAIN_PATH="$XDG_DATA_HOME/reshade" ;;
+                    manual)
+                        _manualPath=$(ui_directorybox "ReShade data directory" "$HOME" 24 95 \
+                            "Choose where ReShadeLinux stores its ReShade runtime, shaders, and state.") || exit 0
+                        MAIN_PATH=$(_resolveManualReshadeDataDirectory "$_manualPath") || exit 1
+                        [[ -n $MAIN_PATH ]] || MAIN_PATH=/
+                        ;;
+                    *) printErr "Unknown ReShade data-directory choice '$_fpChoice'." ;;
+                esac
             else
                 printf '%bBoth Flatpak and native Steam installs detected.%b\n' "$_YLW$_B" "$_R"
                 printf '  1) Flatpak Steam  → %s/reshade\n' "$_flatpak_data"
                 printf '  2) Native Steam   → %s/reshade\n' "$XDG_DATA_HOME"
-                local _installChoice
-                _installChoice=$(checkStdin "Which installation? (1/2): " "^(1|2)$") || exit 1
-                if [[ $_installChoice == "1" ]]; then
-                    MAIN_PATH="$_flatpak_data/reshade"
-                else
-                    MAIN_PATH="$XDG_DATA_HOME/reshade"
-                fi
+                printf '  3) Manual (AppImage) → choose a shared-data folder\n'
+                local _installChoice _manualPath
+                _installChoice=$(checkStdin "Which data location? (1/2/3): " "^(1|2|3)$") || exit 1
+                case "$_installChoice" in
+                    1) MAIN_PATH="$_flatpak_data/reshade" ;;
+                    2) MAIN_PATH="$XDG_DATA_HOME/reshade" ;;
+                    3)
+                        printf 'Choose where ReShadeLinux stores its ReShade runtime, shaders, and state.\n' >&2
+                        _manualPath=$(checkStdin "Directory path: " "^.+$") || exit 1
+                        MAIN_PATH=$(_resolveManualReshadeDataDirectory "$_manualPath") || exit 1
+                        [[ -n $MAIN_PATH ]] || MAIN_PATH=/
+                        ;;
+                esac
             fi
         else
             MAIN_PATH="$XDG_DATA_HOME/reshade"

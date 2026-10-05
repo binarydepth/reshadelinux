@@ -44,6 +44,21 @@ function listSteamAppsDirs() {
     done < <(listSteamRoots)
 }
 
+# Return Heroic configuration roots for native and Flatpak installations.
+function listHeroicConfigDirs() {
+    local _dir _key
+    local -A _seen=()
+
+    for _dir in \
+        "${XDG_CONFIG_HOME:-$HOME/.config}/heroic" \
+        "$HOME/.var/app/com.heroicgameslauncher.hgl/config/heroic"; do
+        _key=$(realpath "$_dir" 2>/dev/null || printf '%s' "$_dir")
+        [[ -n ${_seen["$_key"]+x} ]] && continue
+        _seen["$_key"]=1
+        printf '%s\n' "$_dir"
+    done
+}
+
 # Find a locally cached Steam icon for an AppID.
 function findSteamIconPath() {
     local _steamRoot="$1" _appId="$2" _root _dir _f _c

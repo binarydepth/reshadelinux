@@ -325,7 +325,21 @@ function maybeHandleBatchUpdate() {
 }
 
 function autoDetectWineprefixFromGamePath() {
-    local _steamRoot _pfx _gameName _acf _appid
+    local _steamRoot _pfx _gameName _acf _appid _heroicDir _heroicAppName
+
+    if [[ -z $WINEPREFIX && ${_selectedAppId:-} == heroic-* ]]; then
+        _heroicAppName=${_selectedAppId#heroic-}
+        _heroicAppName=${_heroicAppName#*-}
+        while IFS= read -r _heroicDir; do
+            _pfx=$(getHeroicWinePrefix "$_heroicDir/GamesConfig/$_heroicAppName.json") || _pfx=""
+            [[ -n $_pfx ]] && break
+        done < <(listHeroicConfigDirs)
+        _pfx="${_pfx/#\~/$HOME}"
+        if [[ -n $_pfx && -d $_pfx ]]; then
+            export WINEPREFIX="$_pfx"
+            printf '%bAuto-detected Heroic WINEPREFIX:%b %s\n' "$_GRN" "$_R" "$WINEPREFIX"
+        fi
+    fi
 
     if [[ -z $WINEPREFIX && $gamePath == */steamapps/common/* ]]; then
         _steamRoot="${gamePath%/steamapps/common/*}"

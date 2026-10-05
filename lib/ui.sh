@@ -226,14 +226,16 @@ function ui_inputbox() {
 
 function ui_directorybox() {
     local _title="$1" _startDir="${2:-$HOME}" _height="${3:-24}" _width="${4:-95}"
+    local _text="${5:-Enter a directory path:}"
     local _pxHeight _pxWidth
     case $_UI_BACKEND in
         yad)
             read -r _pxHeight _pxWidth < <(ui_yad_dims "$_height" "$_width")
-            ui_capture yad --file --directory --title="$_title" --filename="$_startDir/" --height="$_pxHeight" --width="$_pxWidth"
+            ui_capture yad --file --directory --title="$_title" --text="$_text" \
+                --filename="$_startDir/" --height="$_pxHeight" --width="$_pxWidth"
             ;;
         *)
-            ui_inputbox "$_title" "Enter a directory path:" "$_startDir/" "$_height" "$_width"
+            ui_inputbox "$_title" "$_text" "$_startDir/" "$_height" "$_width"
             ;;
     esac
 }

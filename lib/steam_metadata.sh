@@ -328,4 +328,6 @@ function detectSteamGames() {
             _processSteamManifest "$_manifest" "$_steamapps" "$_steamRoot" _appinfoExes _bestIdxByPath _bestIdxByAppId
         done
     done < <(listSteamAppsDirs)
+
+    detectHeroicGames _bestIdxByPath _bestIdxByAppId
 }

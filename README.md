@@ -6,7 +6,7 @@
 
 **Install the official ReShade runtime for Wine and Proton games on Linux.**
 
-Automatic Steam game detection, per-game shader selection, AppImage packaging, and a CLI path for scripted installs.
+Automatic Steam and Heroic game detection, per-game shader selection, AppImage packaging, and a CLI path for scripted installs.
 
 | Version | License | Delivery |
 | --- | --- | --- |
@@ -46,13 +46,21 @@ Install `yad` when you want the graphical flow. If `yad` is unavailable, the scr
 
 | Capability | What it does |
 | --- | --- |
-| Steam detection | Scans every Steam library and reads `appinfo.vdf` metadata to find the real launch executable. |
+| Game detection | Scans every Steam library and Heroic's installed Epic/GOG metadata to find Windows game executables. |
 | DLL selection | Uses PE import analysis to choose the most likely ReShade hook such as `dxgi`, `d3d9`, `opengl32`, `ddraw`, or `dinput8`. |
 | Per-game state | Saves DLL, architecture, path, App ID, and selected shader repos per game in `~/.local/share/reshade/game-state/`. |
 | Shader curation | Lets each game keep its own selected shader packs while still linking shared `.fxh` headers needed for compile-time includes. |
-| Prefix support | Detects the right Wine or Proton prefix and installs `d3dcompiler_47.dll` where ReShade 6.5+ expects it. |
+| Prefix support | Detects Steam Proton and Heroic-configured Wine prefixes, then installs `d3dcompiler_47.dll` where ReShade 6.5+ expects it. |
 | Repeat updates | Reuses tracked state for reinstall runs and supports `--update-all` for every known game. |
 | Multiple interfaces | Supports `yad`, `whiptail`, `dialog`, and direct CLI execution over the same install flow. |
+
+## Heroic Games Launcher support
+
+When Heroic is installed, its installed Windows games from Epic and GOG, plus Windows games added through Heroic's sideload feature, are included in the same picker as Steam games. The installer reads Heroic's game metadata and the selected game's configured Wine prefix, so the game files and `d3dcompiler_47.dll` are linked into the appropriate locations.
+
+Both native Heroic configuration (`~/.config/heroic`, or `$XDG_CONFIG_HOME/heroic`) and Heroic Flatpak configuration (`~/.var/app/com.heroicgameslauncher.hgl/config/heroic`) are searched. Sideloaded entries must be marked installed in Heroic and point to an existing Windows executable.
+
+When both Native and Flatpak Steam installations are detected, the startup prompt also offers **Manual (AppImage)** for choosing where ReShadeLinux stores its runtime, shaders, and state. This is a ReShadeLinux data directory, not the Heroic AppImage path. If the chosen directory does not exist, the installer offers to create it. If creation is declined, it asks for an existing game directory containing the `.EXE` and stores ReShade data there instead.
 
 ## Choose how first-run installs behave
 
@@ -140,7 +148,7 @@ VARIABLE=value ./reshadelinux.sh
 
 | Variable | Default | Description |
 | --- | --- | --- |
-| `MAIN_PATH` | `~/.local/share/reshade` | Store ReShade payloads, shader clones, and per-game state here. Flatpak Steam is auto-detected. |
+| `MAIN_PATH` | `~/.local/share/reshade` | Store ReShade payloads, shader clones, and per-game state here. When both Flatpak and native Steam are found, choose either location or select a custom folder with **Manual (AppImage)**. |
 | `UI_BACKEND` | `auto` | Force `auto`, `yad`, `whiptail`, `dialog`, or `cli`. Forced non-CLI backends must exist on `PATH`. |
 | `UPDATE_RESHADE` | `1` | Skip update checks when set to `0`. |
 | `RESHADE_VERSION` | `latest` | Pin a specific ReShade version such as `4.9.1`. |

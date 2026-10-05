@@ -1,5 +1,5 @@
 #!/bin/bash
-# shellcheck disable=SC2030,SC2031  # PATH and other settings are changed inside subshells on purpose
+# shellcheck disable=SC2030,SC2031,SC2329  # tests stub UI/backend functions invoked indirectly in config initialization
 
 # Dialog plumbing: yad text is plain text, and the auto-answer test hook announces itself.
 
@@ -241,6 +241,135 @@ test_startup_is_silent_when_ui_auto_confirm_is_not_set() {
     [[ -z $_err ]]
 }
 
+test_manual_appimage_data_choice_uses_selected_gui_directory() {
+    local _manual_dir="$TEST_TEMP_DIR/manual-appimage-data"
+    local _result
+
+    mkdir -p "$HOME/.local/share/Steam/steamapps" \
+        "$HOME/.var/app/com.valvesoftware.Steam/.local/share/Steam/steamapps" "$_manual_dir"
+    _result=$(
+        (
+            unset MAIN_PATH
+            export XDG_DATA_HOME="$HOME/.local/share"
+            chooseUiBackend() { printf 'dialog\n'; }
+            ui_radiolist() {
+                [[ $* == *"Manual (AppImage)"* ]]
+                printf 'manual\n'
+            }
+            ui_directorybox() { printf '%s\n' "$_manual_dir"; }
+            init_runtime_config >/dev/null
+            printf '%s\n' "$MAIN_PATH"
+        )
+    )
+
+    [[ $_result == "$_manual_dir" ]]
+}
+
+test_manual_appimage_data_choice_uses_selected_cli_directory() {
+    local _manual_dir="$HOME/manual-appimage-cli-data"
+    local _result
+
+    mkdir -p "$HOME/.local/share/Steam/steamapps" \
+        "$HOME/.var/app/com.valvesoftware.Steam/.local/share/Steam/steamapps" "$_manual_dir"
+    _result=$(
+        (
+            unset MAIN_PATH
+            export XDG_DATA_HOME="$HOME/.local/share"
+            chooseUiBackend() { printf 'cli\n'; }
+            init_runtime_config >/dev/null <<EOF
+3
+~/${_manual_dir##*/}
+EOF
+            printf '%s\n' "$MAIN_PATH"
+        )
+    )
+
+    [[ $_result == "$_manual_dir" ]]
+}
+
+test_manual_appimage_missing_data_directory_can_be_created() {
+    local _manual_dir="$TEST_TEMP_DIR/new-reshade-data"
+    local _selected=0 _result
+
+    mkdir -p "$HOME/.local/share/Steam/steamapps" \
+        "$HOME/.var/app/com.valvesoftware.Steam/.local/share/Steam/steamapps"
+    _result=$(
+        (
+            unset MAIN_PATH
+            export XDG_DATA_HOME="$HOME/.local/share"
+            chooseUiBackend() { printf 'dialog\n'; }
+            ui_radiolist() { printf 'manual\n'; }
+            ui_directorybox() { printf '%s\n' "$_manual_dir"; }
+            ui_yesno() { return 0; }
+            init_runtime_config >/dev/null
+            printf '%s\n' "$MAIN_PATH"
+        )
+    )
+
+    [[ $_result == "$_manual_dir" ]]
+    [[ -d $_manual_dir ]]
+}
+
+test_manual_appimage_declining_creation_requests_game_exe_directory() {
+    local _missing_dir="$TEST_TEMP_DIR/missing-reshade-data"
+    local _game_dir="$TEST_TEMP_DIR/game-bin"
+    local _message="" _result
+
+    mkdir -p "$HOME/.local/share/Steam/steamapps" \
+        "$HOME/.var/app/com.valvesoftware.Steam/.local/share/Steam/steamapps" "$_game_dir"
+    touch "$_game_dir/Game.exe"
+    _result=$(
+        (
+            unset MAIN_PATH
+            export XDG_DATA_HOME="$HOME/.local/share"
+            chooseUiBackend() { printf 'dialog\n'; }
+            ui_radiolist() { printf 'manual\n'; }
+            ui_directorybox() {
+                if [[ $1 == *".EXE directory"* ]]; then
+                    printf '%s\n' "$_game_dir"
+                else
+                    printf '%s\n' "$_missing_dir"
+                fi
+            }
+            ui_yesno() { return 1; }
+            ui_msgbox() { _message="$2"; }
+            init_runtime_config >/dev/null
+            [[ $_message == *"game .EXE"* && $_message == *"ReShade data"* ]]
+            printf '%s\n' "$MAIN_PATH"
+        )
+    )
+
+    [[ $_result == "$_game_dir" ]]
+    [[ ! -e $_missing_dir ]]
+}
+
+test_manual_appimage_cli_decline_uses_game_exe_directory() {
+    local _missing_dir="$TEST_TEMP_DIR/missing-cli-reshade-data"
+    local _game_dir="$TEST_TEMP_DIR/cli-game-bin"
+    local _result
+
+    mkdir -p "$HOME/.local/share/Steam/steamapps" \
+        "$HOME/.var/app/com.valvesoftware.Steam/.local/share/Steam/steamapps" "$_game_dir"
+    touch "$_game_dir/Game.exe"
+    _result=$(
+        (
+            unset MAIN_PATH
+            export XDG_DATA_HOME="$HOME/.local/share"
+            chooseUiBackend() { printf 'cli\n'; }
+            init_runtime_config >/dev/null <<EOF
+3
+$_missing_dir
+n
+$_game_dir
+EOF
+            printf '%s\n' "$MAIN_PATH"
+        )
+    )
+
+    [[ $_result == "$_game_dir" ]]
+    [[ ! -e $_missing_dir ]]
+}
+
 run_ui_tests() {
     echo -e "${BLUE}UI Plumbing Tests${NC}"
     run_test "yad message dialogs use plain text" test_yad_message_dialogs_treat_text_as_plain_text
@@ -257,6 +386,11 @@ run_ui_tests() {
     run_test "Progress dialog keeps intentional markup" test_progress_dialog_keeps_its_intentional_markup
     run_test "UI_AUTO_CONFIRM announces itself" test_ui_auto_confirm_announces_itself_at_startup
     run_test "Startup is silent without UI_AUTO_CONFIRM" test_startup_is_silent_when_ui_auto_confirm_is_not_set
+    run_test "Manual AppImage data path is honored in the GUI chooser" test_manual_appimage_data_choice_uses_selected_gui_directory
+    run_test "Manual AppImage data path is honored in CLI mode" test_manual_appimage_data_choice_uses_selected_cli_directory
+    run_test "Manual AppImage data directory can be created" test_manual_appimage_missing_data_directory_can_be_created
+    run_test "Declining directory creation selects the game EXE directory" test_manual_appimage_declining_creation_requests_game_exe_directory
+    run_test "CLI manual AppImage fallback uses game EXE directory" test_manual_appimage_cli_decline_uses_game_exe_directory
     run_test "yad dialogs still open when mktemp fails" test_yad_dialogs_still_open_when_mktemp_fails
     run_test "ui_error needs no backend variable" test_ui_error_is_a_no_op_when_no_backend_is_set
     echo ""
