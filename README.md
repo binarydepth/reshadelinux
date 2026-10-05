@@ -56,9 +56,11 @@ Install `yad` when you want the graphical flow. If `yad` is unavailable, the scr
 
 ## Heroic Games Launcher support
 
-When Heroic is installed, its installed Windows games from Epic and GOG are included in the same picker as Steam games. The installer reads Heroic's installed-game metadata and the selected game's configured Wine prefix, so the game files and `d3dcompiler_47.dll` are linked into the appropriate locations.
+When Heroic is installed, its installed Windows games from Epic and GOG, plus Windows games added through Heroic's sideload feature, are included in the same picker as Steam games. The installer reads Heroic's game metadata and the selected game's configured Wine prefix, so the game files and `d3dcompiler_47.dll` are linked into the appropriate locations.
 
-Both native Heroic configuration (`~/.config/heroic`, or `$XDG_CONFIG_HOME/heroic`) and Heroic Flatpak configuration (`~/.var/app/com.heroicgameslauncher.hgl/config/heroic`) are searched. Heroic games added through custom/sideload entries that are not present in the installed Epic/GOG metadata can still be selected with **Enter path manually...**.
+Both native Heroic configuration (`~/.config/heroic`, or `$XDG_CONFIG_HOME/heroic`) and Heroic Flatpak configuration (`~/.var/app/com.heroicgameslauncher.hgl/config/heroic`) are searched. Sideloaded entries must be marked installed in Heroic and point to an existing Windows executable.
+
+When both Native and Flatpak Steam installations are detected, the startup prompt also offers **Manual (AppImage)** for choosing where ReShadeLinux stores its runtime, shaders, and state. This is a ReShadeLinux data directory, not the Heroic AppImage path. If the chosen directory does not exist, the installer offers to create it. If creation is declined, it asks for an existing game directory containing the `.EXE` and stores ReShade data there instead.
 
 ## Choose how first-run installs behave
 
@@ -146,7 +148,7 @@ VARIABLE=value ./reshadelinux.sh
 
 | Variable | Default | Description |
 | --- | --- | --- |
-| `MAIN_PATH` | `~/.local/share/reshade` | Store ReShade payloads, shader clones, and per-game state here. Flatpak Steam is auto-detected. |
+| `MAIN_PATH` | `~/.local/share/reshade` | Store ReShade payloads, shader clones, and per-game state here. When both Flatpak and native Steam are found, choose either location or select a custom folder with **Manual (AppImage)**. |
 | `UI_BACKEND` | `auto` | Force `auto`, `yad`, `whiptail`, `dialog`, or `cli`. Forced non-CLI backends must exist on `PATH`. |
 | `UPDATE_RESHADE` | `1` | Skip update checks when set to `0`. |
 | `RESHADE_VERSION` | `latest` | Pin a specific ReShade version such as `4.9.1`. |

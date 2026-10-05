@@ -286,22 +286,28 @@ EOF
     [[ ${DETECTED_GAME_EXES[0]} == "reach.exe" ]]
 }
 
-test_detect_heroic_games_reads_installed_metadata() {
+test_detect_heroic_games_reads_store_and_sideload_metadata() {
     local _heroic_config="$HOME/.config/heroic"
     local _game_root="$TEST_TEMP_DIR/heroic-games/HeroicDetect"
     local _gog_root="$TEST_TEMP_DIR/heroic-games/HeroicGogDetect"
     local _flatpak_config="$HOME/.var/app/com.heroicgameslauncher.hgl/config/heroic"
     local _flatpak_root="$TEST_TEMP_DIR/heroic-games/HeroicFlatpakDetect"
+    local _sideload_root="$TEST_TEMP_DIR/heroic-games/HeroicSideload"
     local _prefix="$TEST_TEMP_DIR/heroic-prefix"
+    local _gog_prefix="$TEST_TEMP_DIR/heroic-gog-prefix"
+    local _sideload_prefix="$TEST_TEMP_DIR/heroic-sideload-prefix"
 
     mkdir -p "$_heroic_config/legendaryConfig/legendary" \
         "$_heroic_config/gog_store" "$_heroic_config/GamesConfig" \
-        "$_flatpak_config/legendaryConfig/legendary" "$_flatpak_root" \
+        "$_flatpak_config/legendaryConfig/legendary" "$_flatpak_config/sideload_apps" \
+        "$_flatpak_config/GamesConfig" "$_flatpak_root" "$_sideload_root" \
         "$_game_root/bin/x64" "$_gog_root" \
-        "$_prefix/drive_c/windows/system32"
+        "$_prefix/drive_c/windows/system32" "$_gog_prefix/drive_c/windows/system32" \
+        "$_sideload_prefix/drive_c/windows/system32"
     touch "$_game_root/bin/x64/HeroicDetect.exe"
     touch "$_gog_root/HeroicGogDetect.exe"
     touch "$_flatpak_root/HeroicFlatpakDetect.exe"
+    touch "$_sideload_root/HeroicSideload.exe"
     cat > "$_heroic_config/legendaryConfig/legendary/installed.json" <<EOF
 {
     "HeroicDetectId": {
@@ -312,17 +318,45 @@ test_detect_heroic_games_reads_installed_metadata() {
     }
 }
 EOF
+    cat > "$_flatpak_config/sideload_apps/library.json" <<EOF
+{
+    "games": [
+        {
+            "app_name": "HeroicSideloadId",
+            "title": "Heroic Sideload",
+            "runner": "sideload",
+            "is_installed": true,
+            "install": {
+                "executable": "$_sideload_root/HeroicSideload.exe"
+            }
+        }
+    ]
+}
+EOF
     cat > "$_heroic_config/gog_store/installed.json" <<EOF
 {
     "installed": [
         {
-            "app_name": "HeroicGogDetectId",
-            "title": "Heroic GOG Detect",
+            "appName": "HeroicGogDetectId",
             "install_path": "$_gog_root",
             "executable": "HeroicGogDetect.exe",
             "platform": "windows"
         }
     ]
+}
+EOF
+    cat > "$_flatpak_config/GamesConfig/HeroicSideloadId.json" <<EOF
+{
+    "HeroicSideloadId": {
+        "winePrefix": "$_sideload_prefix"
+    }
+}
+EOF
+    cat > "$_heroic_config/GamesConfig/HeroicGogDetectId.json" <<EOF
+{
+    "HeroicGogDetectId": {
+        "winePrefix": "$_gog_prefix"
+    }
 }
 EOF
     cat > "$_heroic_config/GamesConfig/HeroicDetectId.json" <<EOF
@@ -345,25 +379,41 @@ EOF
 
     detectSteamGames
 
-    [[ ${#DETECTED_GAME_APPIDS[@]} -eq 3 ]]
+    [[ ${#DETECTED_GAME_APPIDS[@]} -eq 4 ]]
     [[ ${DETECTED_GAME_APPIDS[0]} == "heroic-legendary-HeroicDetectId" ]]
     [[ ${DETECTED_GAME_NAMES[0]} == "Heroic Detect" ]]
     [[ ${DETECTED_GAME_PATHS[0]} == "$_game_root/bin/x64" ]]
     [[ ${DETECTED_GAME_EXES[0]} == "HeroicDetect.exe" ]]
     [[ ${DETECTED_GAME_APPIDS[1]} == "heroic-gog-HeroicGogDetectId" ]]
-    [[ ${DETECTED_GAME_NAMES[1]} == "Heroic GOG Detect" ]]
+    [[ ${DETECTED_GAME_NAMES[1]} == "HeroicGogDetectId" ]]
     [[ ${DETECTED_GAME_PATHS[1]} == "$_gog_root" ]]
     [[ ${DETECTED_GAME_EXES[1]} == "HeroicGogDetect.exe" ]]
     [[ ${DETECTED_GAME_APPIDS[2]} == "heroic-legendary-HeroicFlatpakDetectId" ]]
     [[ ${DETECTED_GAME_NAMES[2]} == "Heroic Flatpak Detect" ]]
     [[ ${DETECTED_GAME_PATHS[2]} == "$_flatpak_root" ]]
     [[ ${DETECTED_GAME_EXES[2]} == "HeroicFlatpakDetect.exe" ]]
+    [[ ${DETECTED_GAME_APPIDS[3]} == "heroic-sideload-HeroicSideloadId" ]]
+    [[ ${DETECTED_GAME_NAMES[3]} == "Heroic Sideload" ]]
+    [[ ${DETECTED_GAME_PATHS[3]} == "$_sideload_root" ]]
+    [[ ${DETECTED_GAME_EXES[3]} == "HeroicSideload.exe" ]]
 
     gamePath="${DETECTED_GAME_PATHS[0]}"
     _selectedAppId="${DETECTED_GAME_APPIDS[0]}"
     WINEPREFIX=""
     autoDetectWineprefixFromGamePath
     [[ $WINEPREFIX == "$_prefix" ]]
+
+    gamePath="${DETECTED_GAME_PATHS[1]}"
+    _selectedAppId="${DETECTED_GAME_APPIDS[1]}"
+    WINEPREFIX=""
+    autoDetectWineprefixFromGamePath
+    [[ $WINEPREFIX == "$_gog_prefix" ]]
+
+    gamePath="${DETECTED_GAME_PATHS[3]}"
+    _selectedAppId="${DETECTED_GAME_APPIDS[3]}"
+    WINEPREFIX=""
+    autoDetectWineprefixFromGamePath
+    [[ $WINEPREFIX == "$_sideload_prefix" ]]
 }
 
 run_detection_tests() {
@@ -405,6 +455,6 @@ run_detection_tests() {
     run_test "Install dir scan fallback finds nested exe" test_install_dir_scan_fallback_finds_best_nested_exe
     run_test "Manifest autodetect resolves install path" test_detect_steam_games_reads_manifest_install_path
     run_test "Autodetect keeps game with utility-like exe name" test_detect_steam_games_keeps_game_whose_only_exe_has_utility_substring
-    run_test "Heroic installed games and Wine prefixes are detected" test_detect_heroic_games_reads_installed_metadata
+    run_test "Heroic store games, sideloads, and Wine prefixes are detected" test_detect_heroic_games_reads_store_and_sideload_metadata
     echo ""
 }

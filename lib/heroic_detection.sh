@@ -21,9 +21,13 @@ except (OSError, ValueError) as error:
     sys.exit(1)
 
 store = sys.argv[2]
-if isinstance(records, dict) and isinstance(records.get('installed'), list):
+if store == 'sideload':
+    records = records.get('games', []) if isinstance(records, dict) else []
+    entries = enumerate(records) if isinstance(records, list) else []
+elif isinstance(records, dict) and isinstance(records.get('installed'), list):
     records = records['installed']
-if isinstance(records, dict):
+    entries = enumerate(records)
+elif isinstance(records, dict):
     entries = records.items()
 elif isinstance(records, list):
     entries = enumerate(records)
@@ -33,8 +37,22 @@ else:
 for key, game in entries:
     if not isinstance(game, dict):
         continue
-    app_name = str(game.get('app_name') or key)
-    title = str(game.get('title') or app_name)
+    if store == 'sideload':
+        install = game.get('install')
+        executable = str(install.get('executable') or '') if isinstance(install, dict) else ''
+        executable = os.path.expanduser(executable)
+        if game.get('is_installed') is not True or game.get('runner') != 'sideload':
+            continue
+        if not executable or not executable.lower().endswith('.exe') or not os.path.isfile(executable):
+            continue
+        install_path = os.path.dirname(executable)
+        app_name = str(game.get('app_name') or key)
+        title = str(game.get('title') or app_name)
+        fields = (store, app_name, title, install_path, executable)
+        print('\t'.join(value.replace('\t', ' ').replace('\n', ' ') for value in fields))
+        continue
+    app_name = str(game.get('app_name') or game.get('appName') or key)
+    title = str(game.get('title') or game.get('app_name') or game.get('appName') or app_name)
     install_path = os.path.expanduser(str(game.get('install_path') or ''))
     executable = str(game.get('executable') or '')
     if not app_name or not install_path:
@@ -53,7 +71,7 @@ function _processHeroicInstalledGame() {
     local _bestIdxByPathName="$6" _bestIdxByAppIdName="$7"
     local _appId="heroic-${_store}-$_appName" _path _exe _resolved _icon=""
 
-    [[ $_store == legendary || $_store == gog ]] || return
+    [[ $_store == legendary || $_store == gog || $_store == sideload ]] || return
     [[ $_appName =~ ^[A-Za-z0-9._-]+$ && $_appName != "." && $_appName != ".." ]] || return
     [[ -d $_root ]] || return
 
@@ -93,11 +111,13 @@ function detectHeroicGames() {
     local _appName _name _root _exe
 
     while IFS= read -r _heroicDir; do
-        for _store in legendary gog; do
+        for _store in legendary gog sideload; do
             if [[ $_store == legendary ]]; then
                 _installedFile="$_heroicDir/legendaryConfig/legendary/installed.json"
-            else
+            elif [[ $_store == gog ]]; then
                 _installedFile="$_heroicDir/gog_store/installed.json"
+            else
+                _installedFile="$_heroicDir/sideload_apps/library.json"
             fi
             [[ -f $_installedFile ]] || continue
             while IFS= read -r _record; do
