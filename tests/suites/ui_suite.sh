@@ -253,7 +253,8 @@ test_manual_appimage_data_choice_uses_selected_gui_directory() {
             export XDG_DATA_HOME="$HOME/.local/share"
             chooseUiBackend() { printf 'dialog\n'; }
             ui_radiolist() {
-                [[ $* == *"Manual (AppImage)"* ]]
+                [[ $* == *"Native"* && $* == *"Flatpak"* && $* == *"Manual"* ]]
+                [[ $* != *"Native Steam"* && $* != *"Flatpak Steam"* && $* != *"Manual (AppImage)"* ]]
                 printf 'manual\n'
             }
             ui_directorybox() { printf '%s\n' "$_manual_dir"; }
@@ -386,11 +387,11 @@ run_ui_tests() {
     run_test "Progress dialog keeps intentional markup" test_progress_dialog_keeps_its_intentional_markup
     run_test "UI_AUTO_CONFIRM announces itself" test_ui_auto_confirm_announces_itself_at_startup
     run_test "Startup is silent without UI_AUTO_CONFIRM" test_startup_is_silent_when_ui_auto_confirm_is_not_set
-    run_test "Manual AppImage data path is honored in the GUI chooser" test_manual_appimage_data_choice_uses_selected_gui_directory
-    run_test "Manual AppImage data path is honored in CLI mode" test_manual_appimage_data_choice_uses_selected_cli_directory
-    run_test "Manual AppImage data directory can be created" test_manual_appimage_missing_data_directory_can_be_created
+    run_test "Manual data path is honored in the Native/Flatpak GUI chooser" test_manual_appimage_data_choice_uses_selected_gui_directory
+    run_test "Manual data path is honored in CLI mode" test_manual_appimage_data_choice_uses_selected_cli_directory
+    run_test "Manual data directory can be created" test_manual_appimage_missing_data_directory_can_be_created
     run_test "Declining directory creation selects the game EXE directory" test_manual_appimage_declining_creation_requests_game_exe_directory
-    run_test "CLI manual AppImage fallback uses game EXE directory" test_manual_appimage_cli_decline_uses_game_exe_directory
+    run_test "CLI Manual fallback uses game EXE directory" test_manual_appimage_cli_decline_uses_game_exe_directory
     run_test "yad dialogs still open when mktemp fails" test_yad_dialogs_still_open_when_mktemp_fails
     run_test "ui_error needs no backend variable" test_ui_error_is_a_no_op_when_no_backend_is_set
     echo ""

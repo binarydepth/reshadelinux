@@ -150,7 +150,7 @@ run_shader_retry_cli_smoke() {
 
     printf '==> Running offline shader retry smoke test\n'
     : > "$git_log"
-    printf 'i\n%s\ny\ny\n\n\ny\n' "$game_dir" | \
+    printf 'i\n%s\ny\ny\ny\ny\nn\ny\n' "$game_dir" | \
         HOME="$workspace_dir/home" \
         MAIN_PATH="$workspace_dir/reshade" \
         UI_BACKEND=cli \

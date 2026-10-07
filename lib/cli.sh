@@ -12,6 +12,9 @@ function printUsage() {
     printf '  --dll-override=<name>     Use an explicit ReShade DLL override, e.g. dxgi or d3d9.\n'
     printf '  --shader-repos=<value>    Use all, none, or a comma-separated repo list. With --update-all, override the tracked repos for every game in the batch.\n'
     printf '  --list-shader-repos       Print the configured shader repo names and labels.\n'
+    printf '  --json                    With --list-shader-repos, print registry data as JSON.\n'
+    printf '  --generate-vkbasalt-config=<game-dir> Generate vkBasalt.conf from the active ReShade preset.\n'
+    printf '  --inspect-reshade-parameters=<game-dir|ReShade.ini> Report enabled effects, preset values, and source uniforms.\n'
     printf '  --version, -V             Show the script version.\n'
     printf '  --help, -h                Show this help message.\n'
 }
@@ -31,9 +34,67 @@ function printAvailableShaderRepos() {
     done < <(listConfiguredShaderRepoEntries)
 }
 
+function printAvailableShaderReposJson() {
+    if ! command -v python3 >/dev/null 2>&1; then
+        printf 'Python 3 is required for JSON output.\n' >&2
+        return 1
+    fi
+
+    {
+        local _entry
+        while IFS= read -r _entry || [[ -n $_entry ]]; do
+            parseShaderRepoEntry "$_entry"
+            printf '%s\0' \
+                "$_shaderRepoName" \
+                "$_shaderRepoUri" \
+                "$_shaderRepoBranch" \
+                "$_shaderRepoTitle" \
+                "$_shaderRepoDesc" \
+                "$_shaderRepoRequires"
+        done < <(listConfiguredShaderRepoEntries)
+    } | python3 -c '
+import json
+import sys
+
+fields = sys.stdin.buffer.read().decode("utf-8").split("\0")
+if fields[-1] == "":
+    fields.pop()
+if len(fields) % 6:
+    raise SystemExit("Could not serialize the shader repository registry.")
+
+repos = []
+for index in range(0, len(fields), 6):
+    name, uri, branch, title, description, requires = fields[index:index + 6]
+    repos.append({
+        "name": name,
+        "uri": uri,
+        "branch": branch,
+        "title": title,
+        "description": description,
+        "requires": [item.strip() for item in requires.split(",") if item.strip()],
+    })
+json.dump(repos, sys.stdout, ensure_ascii=False, indent=2)
+sys.stdout.write("\n")
+'
+}
+
 function handleCliInfoArgs() {
+    if [[ ${CLI_GENERATE_VKBASALT_SET:-0} -eq 1 ]]; then
+        generateVkbasaltConfig "$CLI_GENERATE_VKBASALT_PATH" || exit $?
+        exit 0
+    fi
+
+    if [[ ${CLI_INSPECT_RESHADE_PARAMETERS_SET:-0} -eq 1 ]]; then
+        inspectReshadeParameters "$CLI_INSPECT_RESHADE_PARAMETERS_PATH" || exit $?
+        exit 0
+    fi
+
     if [[ ${CLI_LIST_SHADER_REPOS:-0} -eq 1 ]]; then
-        printAvailableShaderRepos
+        if [[ ${CLI_JSON:-0} -eq 1 ]]; then
+            printAvailableShaderReposJson || exit $?
+        else
+            printAvailableShaderRepos
+        fi
         exit 0
     fi
 }
@@ -51,6 +112,11 @@ function parseCliArgs() {
     CLI_SHADER_REPOS=""
     CLI_SHADER_REPOS_SET=0
     CLI_LIST_SHADER_REPOS=0
+    CLI_JSON=0
+    CLI_GENERATE_VKBASALT_PATH=""
+    CLI_GENERATE_VKBASALT_SET=0
+    CLI_INSPECT_RESHADE_PARAMETERS_PATH=""
+    CLI_INSPECT_RESHADE_PARAMETERS_SET=0
 
     local _arg
     for _arg in "$@"; do
@@ -86,6 +152,17 @@ function parseCliArgs() {
             --list-shader-repos)
                 CLI_LIST_SHADER_REPOS=1
                 ;;
+            --json)
+                CLI_JSON=1
+                ;;
+            --generate-vkbasalt-config=*)
+                CLI_GENERATE_VKBASALT_PATH="${_arg#*=}"
+                CLI_GENERATE_VKBASALT_SET=1
+                ;;
+            --inspect-reshade-parameters=*)
+                CLI_INSPECT_RESHADE_PARAMETERS_PATH="${_arg#*=}"
+                CLI_INSPECT_RESHADE_PARAMETERS_SET=1
+                ;;
             --version|-V)
                 printCliVersion
                 exit 0
@@ -111,6 +188,33 @@ function _trim_cli_value() {
 }
 
 function validateCliArgs() {
+    if [[ ${CLI_INSPECT_RESHADE_PARAMETERS_SET:-0} -eq 1 ]]; then
+        CLI_INSPECT_RESHADE_PARAMETERS_PATH=$(_trim_cli_value "$CLI_INSPECT_RESHADE_PARAMETERS_PATH")
+        [[ -n $CLI_INSPECT_RESHADE_PARAMETERS_PATH ]] || printErr "--inspect-reshade-parameters requires a game directory."
+        if [[ ${CLI_GENERATE_VKBASALT_SET:-0} -eq 1 ||
+            ${CLI_LIST_SHADER_REPOS:-0} -eq 1 || ${CLI_JSON:-0} -eq 1 ||
+            ${_BATCH_UPDATE:-0} -eq 1 || ${CLI_GAME_PATH_SET:-0} -eq 1 ||
+            ${CLI_APP_ID_SET:-0} -eq 1 || ${CLI_DLL_OVERRIDE_SET:-0} -eq 1 ||
+            ${CLI_SHADER_REPOS_SET:-0} -eq 1 ]]; then
+            printErr "--inspect-reshade-parameters cannot be combined with install, update, or other inspection options."
+        fi
+    fi
+
+    if [[ ${CLI_GENERATE_VKBASALT_SET:-0} -eq 1 ]]; then
+        CLI_GENERATE_VKBASALT_PATH=$(_trim_cli_value "$CLI_GENERATE_VKBASALT_PATH")
+        [[ -n $CLI_GENERATE_VKBASALT_PATH ]] || printErr "--generate-vkbasalt-config requires a game directory."
+        if [[ ${CLI_LIST_SHADER_REPOS:-0} -eq 1 || ${CLI_JSON:-0} -eq 1 ||
+            ${_BATCH_UPDATE:-0} -eq 1 || ${CLI_GAME_PATH_SET:-0} -eq 1 ||
+            ${CLI_APP_ID_SET:-0} -eq 1 || ${CLI_DLL_OVERRIDE_SET:-0} -eq 1 ||
+            ${CLI_SHADER_REPOS_SET:-0} -eq 1 ]]; then
+            printErr "--generate-vkbasalt-config cannot be combined with install, update, or shader-list options."
+        fi
+    fi
+
+    if [[ ${CLI_JSON:-0} -eq 1 && ${CLI_LIST_SHADER_REPOS:-0} -ne 1 ]]; then
+        printErr "--json requires --list-shader-repos."
+    fi
+
     if [[ ${CLI_FORCE_CLI_SET:-0} -eq 1 && ${CLI_UI_BACKEND_SET:-0} -eq 1 ]]; then
         printErr "Use either --cli or --ui-backend=<backend>, not both."
     fi

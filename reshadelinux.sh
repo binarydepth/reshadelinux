@@ -51,6 +51,8 @@ SCRIPT_DIR="$(dirname "$(realpath -- "$0")")"
 . "$SCRIPT_DIR/lib/shader_registry.sh" || { printf 'Failed to source %s\n' "$SCRIPT_DIR/lib/shader_registry.sh" >&2; exit 1; }
 . "$SCRIPT_DIR/lib/shader_layout.sh" || { printf 'Failed to source %s\n' "$SCRIPT_DIR/lib/shader_layout.sh" >&2; exit 1; }
 . "$SCRIPT_DIR/lib/shader_build.sh" || { printf 'Failed to source %s\n' "$SCRIPT_DIR/lib/shader_build.sh" >&2; exit 1; }
+. "$SCRIPT_DIR/lib/vkbasalt.sh" || { printf 'Failed to source %s\n' "$SCRIPT_DIR/lib/vkbasalt.sh" >&2; exit 1; }
+. "$SCRIPT_DIR/lib/reshade_inspector.sh" || { printf 'Failed to source %s\n' "$SCRIPT_DIR/lib/reshade_inspector.sh" >&2; exit 1; }
 . "$SCRIPT_DIR/lib/shaders.sh" || { printf 'Failed to source %s\n' "$SCRIPT_DIR/lib/shaders.sh" >&2; exit 1; }
 . "$SCRIPT_DIR/lib/steam_detection.sh" || { printf 'Failed to source %s\n' "$SCRIPT_DIR/lib/steam_detection.sh" >&2; exit 1; }
 . "$SCRIPT_DIR/lib/steam_metadata.sh" || { printf 'Failed to source %s\n' "$SCRIPT_DIR/lib/steam_metadata.sh" >&2; exit 1; }

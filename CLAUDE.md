@@ -37,6 +37,8 @@ The suite redirects `HOME`, `XDG_CACHE_HOME` and `MAIN_PATH` into a temp tree. N
 | `lib/shader_registry.sh` | `SHADER_REPOS` entry parsing, labels, default/first-run/requested repo selection. |
 | `lib/shader_layout.sh` | Where a repo keeps its `Shaders`/`Textures` (any case, or the repo root) and whether it conflicts with what is already merged. |
 | `lib/shader_build.sh` | Per-game merged shader directory: merge, link and header handling. |
+| `lib/vkbasalt.sh` | Generate a per-game vkBasalt config from preset or selected ReShade effects. |
+| `lib/reshade_inspector.sh` | Inspect preset values and shader uniforms; offers effect selection when no preset exists. |
 | `lib/shaders.sh` | Repo clone/update, per-game `ReShade.ini`/preset, shader selection UI. |
 | `lib/steam_detection.sh` | Steam roots and libraries, exe scoring, install-dir resolution. |
 | `lib/steam_metadata.sh` | `appinfo.vdf` and PE import parsing (embedded Python), `detectSteamGames`. |
@@ -44,7 +46,7 @@ The suite redirects `HOME`, `XDG_CACHE_HOME` and `MAIN_PATH` into a temp tree. N
 | `lib/install.sh` | Downloads and verification, DLL selection, linking into the game. |
 | `lib/deps.sh` | Required-executable checks; reports all missing tools with per-manager install hints via `printErr`. |
 | `lib/flow.sh` | Workspace init, ReShade version update, uninstall, batch update. |
-| `tests/` | `run_simple_tests.sh`, `helpers/` (fixtures, loader), `suites/` (harness, exe, detection, state, shader, shader layout, shader requirements, flow, deps, install, update, repos, ui, pe, release, release metadata, diagnostics, compile check, gui flow, cli). |
+| `tests/` | `run_simple_tests.sh`, `helpers/` (fixtures, loader), `suites/` (harness, exe, detection, state, shader, shader layout, shader requirements, flow, deps, install, update, repos, ui, pe, release, release metadata, diagnostics, compile check, gui flow, cli, vkBasalt). |
 | `scripts/diagnostics/` | Smoke tests and troubleshooting helpers. |
 | `docs/testing/` | Manual smoke checklists for every GUI, TUI, CLI and in-game aspect, and the GUI audit. Update them with any user-visible change. |
 | `scripts/release/` | AppImage release tool. |

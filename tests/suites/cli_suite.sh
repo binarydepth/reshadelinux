@@ -208,6 +208,58 @@ test_cli_list_shader_repos_prints_configured_repo_labels() {
     [[ $_output == *$'beta\tBeta Collection by demo | Beta repo'* ]]
 }
 
+test_cli_list_shader_repos_json_escapes_configured_values() {
+    local _output
+    export SHADER_REPOS='https://github.com/demo/alpha|alpha|main|Alpha "Collection" \ Pack|A path \ and quote ";https://github.com/demo/beta|beta||Beta|Beta repo|alpha, gamma'
+
+    parseCliArgs --list-shader-repos --json
+    init_runtime_config
+    validateCliArgs
+
+    _output=$(handleCliInfoArgs)
+    python3 - "$_output" <<'PY'
+import json
+import sys
+
+repos = json.loads(sys.argv[1])
+assert repos == [
+    {
+        "name": "alpha",
+        "uri": "https://github.com/demo/alpha",
+        "branch": "main",
+        "title": 'Alpha "Collection" \\ Pack',
+        "description": 'A path \\ and quote "',
+        "requires": [],
+    },
+    {
+        "name": "beta",
+        "uri": "https://github.com/demo/beta",
+        "branch": "",
+        "title": "Beta",
+        "description": "Beta repo",
+        "requires": ["alpha", "gamma"],
+    },
+]
+PY
+}
+
+test_cli_json_requires_list_shader_repos() {
+    local _output _rc
+
+    set +e
+    _output=$( (
+        use_fatal_printErr
+        parseCliArgs --json
+        init_runtime_config
+        validateCliArgs
+    ) 2>&1 )
+    _rc=$?
+    set -e
+
+    [[ $_rc -ne 0 ]]
+    [[ $_output == *"--json requires --list-shader-repos."* ]]
+}
+
 run_cli_tests() {
     echo -e "${BLUE}CLI Flow Tests${NC}"
     run_test "CLI parser sets explicit overrides" test_cli_argument_parser_sets_explicit_overrides
@@ -222,5 +274,7 @@ run_cli_tests() {
     run_test "CLI App ID selects detected game" test_cli_app_id_selects_detected_game
     run_test "CLI version flag prints current version" test_cli_version_flag_prints_current_version
     run_test "CLI list shader repos prints configured labels" test_cli_list_shader_repos_prints_configured_repo_labels
+    run_test "CLI JSON shader repo output escapes configured values" test_cli_list_shader_repos_json_escapes_configured_values
+    run_test "CLI JSON requires the shader repo list command" test_cli_json_requires_list_shader_repos
     echo ""
 }

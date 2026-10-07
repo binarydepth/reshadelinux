@@ -46,6 +46,6 @@ Uninstall, update-all, reinstall and several games. Run these after
 - [ ] **MANAGE-30 P1** Two games installed with different selections keep independent merged folders
   under `game-shaders/<key>`.
 - [ ] **MANAGE-31 P1** A game in a second Steam library folder is detected and installs correctly.
-- [ ] **MANAGE-32 P1** Native and Flatpak Steam both present: the first dialog asks which to target and the
-  answer decides where data is stored.
+- [ ] **MANAGE-32 P1** Both Native and Flatpak installs are present: the chooser offers **Native**, **Flatpak**,
+  and **Manual**; choosing Native or Flatpak selects the matching data location.
 - [ ] **MANAGE-33 P2** Running two instances at once does not corrupt a state file.

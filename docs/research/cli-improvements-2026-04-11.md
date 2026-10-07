@@ -4,7 +4,7 @@
 
 ## Summary
 
-Cross-referencing three primary sources — the Command Line Interface Guidelines (clig.dev), GNU Coding Standards §4.8, and the 12 Factor CLI Apps article (Heroku/Jeff Dickey) — against the current reshadelinux CLI surface reveals seven practical improvement opportunities. All fit the Bash project without new dependencies. The codebase is already stronger than most shell scripts in several areas (flag validation, stderr separation for errors, XDG-compliant `MAIN_PATH`), but has clear gaps in color-output hygiene, scripting-friendly quiet/dry-run modes, and exit code taxonomy.
+Cross-referencing three primary sources — the Command Line Interface Guidelines (clig.dev), GNU Coding Standards §4.8, and the 12 Factor CLI Apps article (Heroku/Jeff Dickey) — against the reshadelinux CLI surface on 2026-04-11 revealed seven practical improvement opportunities. The original observations below are historical; the current status is noted for items since implemented.
 
 ## Sources
 
@@ -19,10 +19,10 @@ Cross-referencing three primary sources — the Command Line Interface Guideline
 
 ## Findings
 
-### 1 — NO_COLOR / TTY-aware ANSI stripping  
-**Status: missing entirely** | **Effort: quick win**
+### 1 — NO_COLOR / TTY-aware ANSI stripping
+**Status: implemented in 1.3.5** | **Effort: quick win**
 
-`lib/logging.sh` sets `_RED`, `_CYN`, `_B`, `_R` colour constants unconditionally and emits them in every `printStep` and `printErr` call. There is no check against `$NO_COLOR`, `$TERM=dumb`, or whether stderr/stdout is a TTY.
+At the time of this report, `lib/logging.sh` set colour constants unconditionally, so piped CLI output included ANSI escape codes. This was addressed in 1.3.5: output is now coloured only on a terminal, respects `NO_COLOR`, and supports `CLICOLOR_FORCE`.
 
 The TTY variable `_has_tty` is computed in `lib/config.sh` (line 4–5) but is used only for UI-backend selection; it never reaches the logging layer. Consequently, piping `--update-all` output to a log file embeds raw ANSI escape codes, breaking grep, diff, and CI log renderers.
 
@@ -57,8 +57,8 @@ This is directly applicable to `--update-all` (potentially touching many Wine pr
 
 ---
 
-### 4 — Machine-readable output for list commands (`--json`)  
-**Status: missing entirely** | **Effort: quick win**
+### 4 — Machine-readable output for list commands (`--json`)
+**Status: implemented** | **Effort: quick win**
 
 `--list-shader-repos` currently emits tab-aligned text:
 ```
@@ -69,7 +69,7 @@ There is no way for a script to reliably parse this (tab width varies; labels co
 For reshadelinux specifically, a JSON output for `--list-shader-repos` would let wrapper scripts (e.g., a Gamescope integration) introspect available repos and construct `--shader-repos=` arguments programmatically.
 
 **Sources:** clig.dev (Output), 12-factor CLI (Factor 8)  
-**Recommendation:** Add `--json` flag; when combined with `--list-shader-repos`, emit a JSON array of `{"name":"…","uri":"…","description":"…"}` objects. This is entirely self-contained in `lib/cli.sh` / `printAvailableShaderRepos`. Tool needed: none beyond bash's built-in printf.
+**Implemented:** `--list-shader-repos --json` emits a JSON array with `name`, `uri`, `branch`, `title`, `description`, and `requires` fields. Python 3 handles JSON escaping; it is already a required runtime dependency.
 
 ---
 
@@ -113,15 +113,21 @@ Comparable tools: `apt-get` uses exit 100 for command-not-found, `curl` has ~30 
 
 | # | Opportunity | Effort | Status |
 |---|-------------|--------|--------|
-| 1 | NO_COLOR / TTY-aware colour stripping in logging.sh | Quick win | Missing entirely |
-| 4 | `--json` for `--list-shader-repos` | Quick win | Missing entirely |
+| 1 | NO_COLOR / TTY-aware colour stripping in logging.sh | Quick win | Implemented in 1.3.5 |
+| 4 | `--json` for `--list-shader-repos` | Quick win | Implemented |
 | 5 | Help text: examples + GitHub URL | Quick win | Worth enhancing |
 | 2 | `--quiet / -q` flag | Quick win → Medium | Missing entirely |
 | 6 | `--no-input` strict non-interactive mode | Medium | Missing entirely |
 | 7 | Exit code taxonomy (≥3 distinct codes) | Medium | Worth enhancing |
 | 3 | `--dry-run / -n` | Larger | Missing entirely |
 
-Items 1, 4, and 5 can each be completed in a single focused edit. Items 2 and 6 touch two modules each. Item 7 touches all `printErr` call sites. Item 3 requires threading a guard through the install flow.
+Items 5, 2 and 6 remain available as CLI improvements. Item 7 touches all `printErr` call sites. Item 3 requires threading a guard through the install flow.
+
+## Additional product opportunities
+
+- **Startup game discovery and installed-games-first workflow:** at startup, discover installed games from both native and Flatpak Steam libraries and show games that already have ReShadeLinux installed as the primary choices, so users can select one and start/manage its shaders. Include a **New Game** option that lists other discovered games from either Steam installation for a fresh setup. Define how the entry point behaves consistently across yad, TUI, and CLI, while preserving update/manage flows.
+- **Categorize games in the picker:** group detected games by source (for example, Steam and Heroic) while preserving search, selection, and duplicate-game handling.
+- **Categorize shaders in the UI:** explore grouping shader packs or effects by category, including whether organization belongs in the installer picker, the in-game ReShade UI, or both. Define a maintainable source for category metadata before implementation.
 
 ## Gaps / Further research needed
 

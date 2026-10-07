@@ -68,6 +68,8 @@ function repoIsSelected() {
     IFS=',' read -ra _repoList <<< "$_selectedRepos"
     IFS="$_savedIFS"
     for _entry in "${_repoList[@]}"; do
+        [[ $_entry == gshade-local ]] && _entry=custom-local
+        [[ $_repoName == gshade-local ]] && _repoName=custom-local
         [[ $_entry == "$_repoName" ]] && return 0
     done
     return 1

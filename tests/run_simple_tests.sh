@@ -151,6 +151,11 @@ source "$SCRIPT_DIR/suites/cli_suite.sh" || {
     echo "Failed to source suites/cli_suite.sh"
     exit 1
 }
+# shellcheck source=./suites/vkbasalt_suite.sh
+source "$SCRIPT_DIR/suites/vkbasalt_suite.sh" || {
+    echo "Failed to source suites/vkbasalt_suite.sh"
+    exit 1
+}
 
 # Run one test function in an isolated environment and return its status.
 #
@@ -265,6 +270,7 @@ main() {
     run_compile_check_report_tests
     run_compile_check_tests
     run_cli_tests
+    run_vkbasalt_tests
 
     echo -e "${BLUE}========================================${NC}"
     echo -e "${BLUE}Test Summary${NC}"

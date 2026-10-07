@@ -10,7 +10,7 @@ from its Epic or GOG library.
 
 ## 0. ReShade data location
 
-- [ ] **INST-00 P1** With both Native and Flatpak Steam installations present, choose **Manual (AppImage)**. Confirm the prompt describes a ReShadeLinux data folder (runtime, shaders, and state), not an AppImage location.
+- [ ] **INST-00 P1** With both Native and Flatpak installations present, confirm the choices are named **Native**, **Flatpak**, and **Manual** without launcher names in the option labels. Choose **Manual** and confirm the prompt describes a ReShadeLinux data folder (runtime, shaders, and state).
 - [ ] **INST-00a P1** Enter a missing data directory and accept creation; confirm the directory is created and selected.
 - [ ] **INST-00b P1** Enter a missing data directory and decline creation; confirm the prompt explains that ReShade data will be stored in the game `.EXE` directory, then select an existing directory containing a `.exe`.
 

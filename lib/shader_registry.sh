@@ -73,6 +73,11 @@ function listConfiguredShaderRepoEntries() {
     done
 }
 
+# A user-provided shader checkout is a local source, not an auto-downloaded repo.
+function getLocalShaderRepoName() {
+    printf 'custom-local\n'
+}
+
 # Print the selection followed by every pack it needs, directly or through another pack,
 # without duplicates. Names the registry does not know are dropped from the requirements
 # and a cycle ends at the first repeat.
@@ -213,12 +218,15 @@ function normalizeRequestedShaderRepos() {
         parseShaderRepoEntry "$_entry"
         _known["$_shaderRepoName"]=1
     done < <(listConfiguredShaderRepoEntries)
+    _known["$(getLocalShaderRepoName)"]=1
+    _known["gshade-local"]=1
 
     IFS=',' read -ra _requestedNames <<< "$_requested"
     for _requestedName in "${_requestedNames[@]}"; do
         _normalized="${_requestedName#"${_requestedName%%[![:space:]]*}"}"
         _normalized="${_normalized%"${_normalized##*[![:space:]]}"}"
         [[ -z $_normalized ]] && continue
+        [[ $_normalized == gshade-local ]] && _normalized=$(getLocalShaderRepoName)
         [[ -n ${_known["$_normalized"]+x} ]] || {
             printf 'Unknown shader repository: %s\n' "$_normalized" >&2
             return 1
@@ -231,6 +239,9 @@ function normalizeRequestedShaderRepos() {
         [[ -n ${_selected["$_shaderRepoName"]+x} ]] || continue
         _selectedNames+=("$_shaderRepoName")
     done < <(listConfiguredShaderRepoEntries)
+    local _localName
+    _localName=$(getLocalShaderRepoName)
+    [[ -n ${_selected["$_localName"]+x} ]] && _selectedNames+=("$_localName")
 
     local IFS=','
     printf '%s\n' "${_selectedNames[*]}"
@@ -241,6 +252,11 @@ function getAvailableSelectedRepos() {
     local -a _available=()
 
     collectSelectedInstalledShaderRepos "$_selectedRepos" _available
+    if repoIsSelected "$_selectedRepos" "$(getLocalShaderRepoName)" &&
+        [[ -n ${CUSTOM_SHADER_PATH:-} && -d $CUSTOM_SHADER_PATH ]] &&
+        [[ -n $(_findRepoContentDir "$CUSTOM_SHADER_PATH" Shaders) ]]; then
+        _available+=("$(getLocalShaderRepoName)")
+    fi
 
     local IFS=','
     printf '%s\n' "${_available[*]}"

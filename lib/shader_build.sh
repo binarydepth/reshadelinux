@@ -34,6 +34,13 @@ function buildGameShaderDir() {
         [[ ! -d "$MAIN_PATH/ReShade_shaders/$_shaderRepoName" ]] && continue
         linkRepoIncludesTo "$MAIN_PATH/ReShade_shaders/$_shaderRepoName" "$_outBase"
     done < <(listConfiguredShaderRepoEntries)
+    if repoIsSelected "$_selectedRepos" "$(getLocalShaderRepoName)" &&
+        [[ -n ${CUSTOM_SHADER_PATH:-} && -d $CUSTOM_SHADER_PATH ]]; then
+        setProgressText "Building shader directory\nMerging custom shader files"
+        printf '%bMerging custom shader files%b\n' "$_CYN$_B" "$_R"
+        mergeShaderDirsTo "Local_Custom" "" "$_outBase"
+        linkRepoIncludesTo "$CUSTOM_SHADER_PATH" "$_outBase"
+    fi
     if [[ -d "$MAIN_PATH/External_shaders" ]]; then
         setProgressText "Building shader directory\n[extra] Merging external shaders"
         logDebug "buildGameShaderDir external shaders"
@@ -168,19 +175,21 @@ function mirrorShaderHeadersToMergedRoot() {
 
 # Merge shader directories into an arbitrary output base directory.
 function mergeShaderDirsTo() {
-    [[ $1 != ReShade_shaders && $1 != External_shaders ]] && return
+    [[ $1 == ReShade_shaders || $1 == External_shaders || $1 == Local_Custom ]] || return
     local _outBase="$3"
     local _repoRoot="" dirPath dirName anyDir
 
     if [[ $1 == "ReShade_shaders" ]]; then
         _repoRoot="$MAIN_PATH/$1/$2"
         _reportConflictingShaderFiles "$_repoRoot" "$_outBase" "$2"
+    elif [[ $1 == "Local_Custom" ]]; then
+        _repoRoot="$CUSTOM_SHADER_PATH"
     else
         _repoRoot="$MAIN_PATH/$1"
     fi
 
     for dirName in Shaders Textures; do
-        if [[ $1 == "ReShade_shaders" ]]; then
+        if [[ $1 == "ReShade_shaders" || $1 == "Local_Custom" ]]; then
             dirPath=$(_findRepoContentDir "$_repoRoot" "$dirName")
         else
             dirPath=$(_findRepoContentDir "$_repoRoot" "$dirName" shallow)
