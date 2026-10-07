@@ -45,3 +45,15 @@ The same flows as the GUI, on the text backends. Run with a real terminal.
 - [ ] **CLI-10 P1** Colour is used only on a terminal: `./reshadelinux.sh --version | cat` and a redirect to a file
   contain no escape sequences, `NO_COLOR=1` turns colour off on a terminal, and `CLICOLOR_FORCE=1` turns it on
   in a pipe. **Auto:** unit tests, including a pseudo terminal
+- [ ] **CLI-11 P1** `--list-shader-repos --json` prints valid JSON with each repository's name, URI, branch,
+  title, description and requirements; `--json` without `--list-shader-repos` fails clearly. **Auto:** unit tests
+- [ ] **CLI-12 P1** `--generate-vkbasalt-config=DIR` uses the active ReShade preset or offers effects from
+  `EffectSearchPaths` when no preset exists; it updates only a previously ReShadeLinux-generated config,
+  preserves unrelated existing configs, and exits before install flow. **Auto:** unit tests
+- [ ] **CLI-14 P1** `--inspect-reshade-parameters=DIR|ReShade.ini` reports enabled techniques, per-effect
+  preset values, recognized uniform defaults and UI metadata; without a preset, it offers installed effects
+  and generates or updates `vkBasalt.conf`. **Auto:** unit tests
+- [ ] **CLI-13 P1** Selecting `custom-local` in the shader picker asks for a local shader folder containing
+  `Shaders/` when no valid `CUSTOM_SHADER_PATH` or remembered folder exists, remembers it, and merges its
+  effects/textures only for selected games. Legacy `GSHADE_PATH` and `gshade-local` remain compatible.
+  **Auto:** unit tests; manually verify the directory chooser in each graphical/TUI backend.

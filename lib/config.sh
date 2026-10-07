@@ -75,23 +75,26 @@ function init_runtime_config() {
     XDG_DATA_HOME=${XDG_DATA_HOME:-"$HOME/.local/share"}
     UI_BACKEND=${UI_BACKEND:-auto}
 
-    if [[ -z ${MAIN_PATH+x} ]]; then
+    if [[ ${CLI_GENERATE_VKBASALT_SET:-0} -eq 1 ||
+        ${CLI_INSPECT_RESHADE_PARAMETERS_SET:-0} -eq 1 ]]; then
+        MAIN_PATH=${MAIN_PATH:-"$XDG_DATA_HOME/reshade"}
+    elif [[ -z ${MAIN_PATH+x} ]]; then
         local _flatpak_data="$HOME/.var/app/com.valvesoftware.Steam/.local/share"
         local _flatpak_ok=0 _native_ok=0
         [[ -d "$_flatpak_data/Steam" ]] && _flatpak_ok=1
         [[ -d "$XDG_DATA_HOME/Steam" ]] && _native_ok=1
         if [[ $_flatpak_ok -eq 1 && $_native_ok -eq 0 ]]; then
             MAIN_PATH="$_flatpak_data/reshade"
-            printf '%bDetected Flatpak Steam — using Flatpak data dir for MAIN_PATH.%b\n' "$_CYN" "$_R"
+            printf '%bDetected Flatpak installation — using its data directory for ReShadeLinux.%b\n' "$_CYN" "$_R"
         elif [[ $_flatpak_ok -eq 1 && $_native_ok -eq 1 ]]; then
             if [[ $_UI_BACKEND != cli ]]; then
                 local _fpChoice _manualPath
                 _fpChoice=$(ui_radiolist "ReShade" \
-                    "Choose where ReShadeLinux should store its shared data." \
+                    "Choose an installation type for ReShadeLinux data." \
                     16 78 3 \
-                    flatpak "Flatpak Steam -> $_flatpak_data/reshade" ON \
-                    native "Native Steam -> $XDG_DATA_HOME/reshade" OFF \
-                    manual "Manual (AppImage)" OFF) || exit 0
+                    native "Native" OFF \
+                    flatpak "Flatpak" ON \
+                    manual "Manual" OFF) || exit 0
                 case "$_fpChoice" in
                     flatpak) MAIN_PATH="$_flatpak_data/reshade" ;;
                     native) MAIN_PATH="$XDG_DATA_HOME/reshade" ;;
@@ -104,15 +107,15 @@ function init_runtime_config() {
                     *) printErr "Unknown ReShade data-directory choice '$_fpChoice'." ;;
                 esac
             else
-                printf '%bBoth Flatpak and native Steam installs detected.%b\n' "$_YLW$_B" "$_R"
-                printf '  1) Flatpak Steam  → %s/reshade\n' "$_flatpak_data"
-                printf '  2) Native Steam   → %s/reshade\n' "$XDG_DATA_HOME"
-                printf '  3) Manual (AppImage) → choose a shared-data folder\n'
+                printf '%bBoth Flatpak and Native installations detected.%b\n' "$_YLW$_B" "$_R"
+                printf '  1) Native  → %s/reshade\n' "$XDG_DATA_HOME"
+                printf '  2) Flatpak → %s/reshade\n' "$_flatpak_data"
+                printf '  3) Manual → choose a shared-data folder\n'
                 local _installChoice _manualPath
-                _installChoice=$(checkStdin "Which data location? (1/2/3): " "^(1|2|3)$") || exit 1
+                _installChoice=$(checkStdin "Choose installation type (1/2/3): " "^(1|2|3)$") || exit 1
                 case "$_installChoice" in
-                    1) MAIN_PATH="$_flatpak_data/reshade" ;;
-                    2) MAIN_PATH="$XDG_DATA_HOME/reshade" ;;
+                    1) MAIN_PATH="$XDG_DATA_HOME/reshade" ;;
+                    2) MAIN_PATH="$_flatpak_data/reshade" ;;
                     3)
                         printf 'Choose where ReShadeLinux stores its ReShade runtime, shaders, and state.\n' >&2
                         _manualPath=$(checkStdin "Directory path: " "^.+$") || exit 1
@@ -128,6 +131,13 @@ function init_runtime_config() {
 
     # shellcheck disable=SC2034
     RESHADE_PATH="$MAIN_PATH/reshade"
+    CUSTOM_SHADER_PATH=${CUSTOM_SHADER_PATH:-${GSHADE_PATH:-}}
+    if [[ -z $CUSTOM_SHADER_PATH && -f "$MAIN_PATH/custom-shader-source-path" ]]; then
+        IFS= read -r CUSTOM_SHADER_PATH < "$MAIN_PATH/custom-shader-source-path" || CUSTOM_SHADER_PATH=""
+    fi
+    if [[ -z $CUSTOM_SHADER_PATH && -f "$MAIN_PATH/gshade-source-path" ]]; then
+        IFS= read -r CUSTOM_SHADER_PATH < "$MAIN_PATH/gshade-source-path" || CUSTOM_SHADER_PATH=""
+    fi
     UPDATE_RESHADE=${UPDATE_RESHADE:-1}
     GLOBAL_INI=${GLOBAL_INI:-"ReShade.ini"}
     LINK_PRESET=${LINK_PRESET:-""}

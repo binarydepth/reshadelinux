@@ -55,8 +55,8 @@ dialog under the GUI, a message on the terminal), **specific** (says what and wh
 - [ ] **EDGE-41 P1** Started from a desktop file with a minimal `PATH`: the required programs are found or
   reported by name.
 - [ ] **EDGE-42 P1** A non-UTF-8 locale (`LANG=C`) still shows readable dialogs.
-- [ ] **EDGE-43 P1** Both native and Flatpak Steam present: the question is asked once, and the choice is used
-  for every later step.
+- [ ] **EDGE-43 P1** Both Native and Flatpak installs present: the chooser offers **Native**, **Flatpak**, and
+  **Manual** once, and the selection is used for every later step.
 - [ ] **EDGE-44 P2** `set -e` in a calling script does not abort the flow half-way (the shipped scripts are
   written to be safe under it).
 - [ ] **EDGE-45 P2** Headless machine (no display, no terminal): `--cli` with all options works and never opens a

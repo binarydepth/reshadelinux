@@ -8,8 +8,14 @@ The format is based on Keep a Changelog, adapted for this repository.
 
 ### Added
 
-- When both Native and Flatpak Steam are detected, choose a ReShadeLinux data folder with the new **Manual (AppImage)** startup option, create a missing folder, or use the game `.EXE` folder if creation is declined.
+- When both Native and Flatpak installations are detected, choose a ReShadeLinux data folder with **Native**, **Flatpak**, or **Manual**, create a missing folder, or use the game `.EXE` folder if creation is declined.
 - Detect installed Heroic Epic and GOG Windows games plus installed sideloaded games from native and Flatpak profiles, and use each game's configured Wine prefix for `d3dcompiler_47.dll`.
+- `--list-shader-repos --json` prints configured shader repository metadata as a JSON array for scripts.
+- `--generate-vkbasalt-config=<game-dir>` writes a per-game vkBasalt config from enabled effect files in the active ReShade preset.
+- `--inspect-reshade-parameters=<game-dir|ReShade.ini>` reports enabled effects, saved ReShade values, and recognized shader uniforms/defaults for manual vkBasalt review.
+- The parameter inspector can find a uniquely named custom preset beside `ReShade.ini` when `PresetPath` and `ReShadePreset.ini` are absent; it reports multiple candidates without guessing.
+- If no ReShade preset is available, vkBasalt export and parameter inspection offer `.fx` files from `EffectSearchPaths` for selection; generated configs can be refreshed without replacing unrelated user configs.
+- The shader picker can merge any manually provided local shader directory through `CUSTOM_SHADER_PATH`; GShade is supported as a user-downloaded source, and legacy `GSHADE_PATH`/`gshade-local` settings remain compatible.
 
 ## [1.3.5] - 2026-09-21
 

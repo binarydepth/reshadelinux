@@ -36,6 +36,7 @@ bash tests/run_simple_tests.sh
 - `suites/release_suite.sh` - release tool helpers and the `--build-only` and full-release phase ordering, with every side-effecting phase stubbed
 - `suites/diagnostics_suite.sh` - smoke runners keep their workspace and log tails when a run fails
 - `suites/cli_suite.sh` - CLI parsing and flow test groups sourced by the runner
+- `suites/vkbasalt_suite.sh` - vkBasalt config export, ReShade preset/uniform inspection, and custom local shader source selection/merge behavior
 
 ## Coverage
 

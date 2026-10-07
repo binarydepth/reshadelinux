@@ -28,6 +28,56 @@ function _updateShaderRepoClone() {
     _gitNoPrompt -C "$_dir" reset --hard '@{upstream}'
 }
 
+# Ask once for the user's custom shader directory and remember it in the ReShade data
+# directory. The source is never cloned or downloaded by this app.
+function ensureCustomShaderPath() {
+    local _candidate="${CUSTOM_SHADER_PATH:-${GSHADE_PATH:-}}" _response _migrateLegacy=0
+    local _pathFile="$MAIN_PATH/custom-shader-source-path"
+
+    [[ ! -f $_pathFile && -f "$MAIN_PATH/gshade-source-path" ]] && _migrateLegacy=1
+    if [[ -z $_candidate && -f $_pathFile ]]; then
+        IFS= read -r _candidate < "$_pathFile" || _candidate=""
+    fi
+    if [[ -z $_candidate && -f "$MAIN_PATH/gshade-source-path" ]]; then
+        IFS= read -r _candidate < "$MAIN_PATH/gshade-source-path" || _candidate=""
+    fi
+
+    if [[ -n $_candidate && -d $_candidate &&
+        -n $(_findRepoContentDir "$_candidate" Shaders) ]]; then
+        CUSTOM_SHADER_PATH=$(realpath "$_candidate") || return 1
+        if [[ $_migrateLegacy -eq 1 ]]; then
+            printf '%s\n' "$CUSTOM_SHADER_PATH" > "$_pathFile" || {
+                printf 'Could not migrate the saved custom shader directory to %s.\n' "$_pathFile" >&2
+                return 1
+            }
+        fi
+        return 0
+    fi
+
+    if [[ $_UI_BACKEND == cli ]]; then
+        [[ -t 0 ]] || {
+            printf 'Select custom-local in an interactive run, or set CUSTOM_SHADER_PATH to the shader directory.\n' >&2
+            return 1
+        }
+        printf 'Choose the custom shader directory containing Shaders/ and optionally Textures/.\n' >&2
+        _response=$(checkStdin "Custom shader directory: " "^.+$") || return 1
+    else
+        _response=$(ui_directorybox "ReShade - Choose Custom Shader Directory" "$HOME" 24 95 \
+            "Select the shader folder containing Shaders and optionally Textures.") || return 1
+    fi
+    _response="${_response/#\~/$HOME}"
+    [[ -d $_response && -n $(_findRepoContentDir "$_response" Shaders) ]] || {
+        printf 'The selected custom shader directory must contain a Shaders folder.\n' >&2
+        return 1
+    }
+
+    CUSTOM_SHADER_PATH=$(realpath "$_response") || return 1
+    printf '%s\n' "$CUSTOM_SHADER_PATH" > "$_pathFile" || {
+        printf 'Could not save the selected custom shader directory to %s.\n' "$_pathFile" >&2
+        return 1
+    }
+}
+
 # Clone or update selected shader repositories; records failures in _failedRepos.
 function ensureSelectedShaderRepos() {
     local _selectedRepos
@@ -66,6 +116,17 @@ function ensureSelectedShaderRepos() {
             fi
         fi
     done < <(listConfiguredShaderRepoEntries)
+    if repoIsSelected "$_selectedRepos" "$(getLocalShaderRepoName)"; then
+        if ensureCustomShaderPath; then
+            local _customShaders
+            _customShaders=$(_findRepoContentDir "$CUSTOM_SHADER_PATH" Shaders)
+            [[ -d $_customShaders ]] || {
+                _failedRepos="${_failedRepos:+$_failedRepos,}$(getLocalShaderRepoName)"
+            }
+        else
+            _failedRepos="${_failedRepos:+$_failedRepos,}$(getLocalShaderRepoName)"
+        fi
+    fi
     [[ -n $_failedRepos ]] && return 1
     return 0
 }
@@ -130,6 +191,13 @@ function selectShaders() {
         _rowKey="${#_names[@]}"
         _rows+=("$_rowKey" "${_labels[-1]}" "$_checked")
     done < <(listConfiguredShaderRepoEntries)
+    local _localName _localChecked
+    _localName=$(getLocalShaderRepoName)
+    _localChecked=$(repoChecklistState "$_current" "$_localName")
+    _names+=("$_localName")
+    _labels+=("Custom shaders (local files) | select a local shader pack; compatibility varies")
+    _rowKey="${#_names[@]}"
+    _rows+=("$_rowKey" "${_labels[-1]}" "$_localChecked")
     local -a _selected_names=()
     if [[ $_UI_BACKEND != cli ]]; then
         local _term_lines _list_h _box_h
